@@ -6,8 +6,6 @@ import (
 	"os"
 	"bufio"
 	"fmt"
-	"io"
-	"log"
 )
 
 const limit = 4 * 1024 * 1024
@@ -22,7 +20,7 @@ func countStats(url string, calcFunc func(int64, *bufio.Scanner) int64, splitFun
 	// Get the requested url.
 	resp, err := client.Get(url)
 	if err != nil {
-		fmt.Errorf("Error requesting url:\n%v\n", err.Error())
+		fmt.Printf("Error requesting url:\n%v\n", err.Error())
 		return -1
 	}
 	defer resp.Body.Close()
@@ -37,13 +35,11 @@ func countStats(url string, calcFunc func(int64, *bufio.Scanner) int64, splitFun
 		result = calcFunc(result, scanner)
 	}
 
-//	fmt.Printf("The size of the requested page is %v bytes.\n", size)
 	return
 }
 
 func getPageSize(url string) int64 {
 	calculateSize := func(size int64, scanner *bufio.Scanner) int64 {
-		log.Printf("calculateSize: size=%v len=%v", size, len(scanner.Bytes()))
 		return size + int64(len(scanner.Bytes()))
 	}
 	splitFunc := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
@@ -65,39 +61,6 @@ func getWordsCount(url string) int64 {
 	return countStats(url, calculateWords, bufio.ScanWords)
 }
 
-func getSizeNoScan(url string) (size int64, err error) {
-	// Define our own client.
-	//var client = &http.Client{
-	//	// In order not to hang when the server went down or smth else bad happened.
-	//	Timeout: time.Second * 10,
-	//}
-
-	// Get the requested url.
-	resp, err := /*client.*/http.Get(url)
-	if err != nil {
-		fmt.Errorf("Error requesting url:\n%v\n", err.Error())
-		return -1, err
-	}
-	defer resp.Body.Close()
-
-
-	// Estimate the size of its contents.
-	buffer := make([]byte, limit)
-	n := -1
-	for n, err = resp.Body.Read(buffer); err == nil; {
-		size += int64(n)
-		log.Printf("size=%v n=%v\n err=%v resp.Body=%v", size, n, err, resp.Body)
-	}
-	if err == io.EOF {
-		size += int64(n)
-		log.Printf("EOF: size=%v n=%v\n", size, n)
-		return size, nil
-	} else {
-		fmt.Errorf("Error processing page:\n%v\n", err.Error())
-		return -1, err
-	}
-}
-
 func main() {
 	if len(os.Args) != 3 {
 		fmt.Print("Sorry, the arguments are incorrect.\n" +
@@ -112,10 +75,17 @@ func main() {
 
 	switch cmd {
 	case "-s":
-		getPageSize(url)
+		size := getPageSize(url)
+		if size != -1 {
+			fmt.Printf("The size of the requested page is %v bytes.\n", size)
+		}
 		return
-	//case "-w":
-	//	return
+	case "-w":
+		words := getWordsCount(url)
+		if words != -1 {
+			fmt.Printf("The number of words is %v.\n", words)
+		}
+		return
 	default:
 		fmt.Print("Unknown command. Please, try again.\n")
 	}
