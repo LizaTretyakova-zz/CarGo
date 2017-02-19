@@ -27,4 +27,7 @@ func TestGetWordsCount(t *testing.T) {
 	log.Print(getWordsCount("http://lib.ru/POEZIQ/GETE/tsar.txt"))
 }
 
-//url
+func TestIncorrectUrl(t *testing.T) {
+	getWordsCount("fdkghkjfdh")
+	getPageSize("http://fkhgkfjh")
+}
